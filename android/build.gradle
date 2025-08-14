@@ -1,17 +1,15 @@
 buildscript {
-    ext.kotlin_version = '1.7.10'
+    ext.kotlin_version = '1.9.20'  // Updated from 1.7.10
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath 'com.google.gms:google-services:4.3.15'
-//        implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
-//        implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.6.0'
-
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
+
 allprojects {
     repositories {
         google()

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Fan_DeviceDetailScreen extends StatefulWidget {
   @override
@@ -9,16 +10,41 @@ class Fan_DeviceDetailScreen extends StatefulWidget {
 
 class _Fan_DeviceDetailScreenState extends State<Fan_DeviceDetailScreen> {
   bool isOn = false;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  User? _currentUser;
+  DocumentReference? _fanDocRef;
 
-  // Reference to your Firestore document
-  final fanDocRef = FirebaseFirestore.instance
-      .collection('wattwizard')
-      .doc('FRHZLgxL68UL66HdprgD');
+  @override
+  void initState() {
+    super.initState();
+    _currentUser = _auth.currentUser;
+    if (_currentUser != null) {
+      _fanDocRef = _firestore.collection('users').doc(_currentUser!.uid).collection('devices').doc('fan_01');
+      _listenToFanStatus();
+    }
+  }
+
+  void _listenToFanStatus() {
+    _fanDocRef?.snapshots().listen((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        // Explicitly cast snapshot.data() to Map<String, dynamic>
+        final data = snapshot.data() as Map<String, dynamic>?;
+        if (data != null) {
+          setState(() {
+            isOn = data['status'] ?? false;
+          });
+        }
+      }
+    });
+  }
 
   // Method to update fan status in Firestore
   Future<void> updateFanStatus(bool status) async {
     try {
-      await fanDocRef.update({'fan_status': status});
+      if (_fanDocRef != null) {
+        await _fanDocRef!.update({'status': status});
+      }
     } catch (e) {
       debugPrint('Failed to update fan status: $e');
     }
@@ -26,6 +52,13 @@ class _Fan_DeviceDetailScreenState extends State<Fan_DeviceDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_currentUser == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text("Fan")),
+        body: const Center(child: Text("Please log in to control devices.")),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Fan"),

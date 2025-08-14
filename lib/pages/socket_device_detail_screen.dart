@@ -12,8 +12,8 @@ class _socket_DeviceDetailScreenState extends State<socket_DeviceDetailScreen> {
 
   // Reference to your Firestore document
   final fanDocRef = FirebaseFirestore.instance
-      .collection('wattwizard')
-      .doc('FRHZLgxL68UL66HdprgD');
+      .collection('watt-wizard')
+      .doc('HicevjsZy57Qx2Dzowzh');
 
   // Method to update fan status in Firestore
   Future<void> updateFanStatus(bool status) async {

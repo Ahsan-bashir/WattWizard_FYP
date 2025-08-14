@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "241880735716",
-    "project_id": "wattwizard-448dd",
-    "storage_bucket": "wattwizard-448dd.firebasestorage.app"
+    "project_number": "157329226710",
+    "project_id": "watt-wizard-c0833",
+    "storage_bucket": "watt-wizard-c0833.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:241880735716:android:6f8bffdac085f5823171f1",
+        "mobilesdk_app_id": "1:157329226710:android:15a84c3272af9f5bc00277",
         "android_client_info": {
           "package_name": "com.example.wattwizard"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBRIqZ9y1gT9eEL7kHB_pn4w7eUHKRotDo"
+          "current_key": "AIzaSyBjJ3LRwrFSgLFKV9rqH55we0svsAYhB3Q"
         }
       ],
       "services": {

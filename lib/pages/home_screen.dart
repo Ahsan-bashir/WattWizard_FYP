@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'ai_suggestion_screen.dart';
 import 'setting_screen.dart';
 import 'Fan_device_detail_screen.dart';
@@ -17,7 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0; // Tracks which tab is selected
 
-  // List of screens to navigate betwee
+  // List of screens to navigate between
   final List<Widget> _screens = [
     HomeContent(), // Home Screen Content
     AISuggestionScreen(), // AI Suggestion Screen
@@ -66,9 +68,22 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // Home Screen Content Widget
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
+  @override
+  _HomeContentState createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   @override
   Widget build(BuildContext context) {
+    User? user = _auth.currentUser;
+    if (user == null) {
+      return const Center(child: Text("Please log in to view devices."));
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -90,7 +105,7 @@ class HomeContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  "2700 watt",
+                  "2700 watt", // This will be dynamic later
                   style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
@@ -121,14 +136,14 @@ class HomeContent extends StatelessWidget {
                       borderData: FlBorderData(show: false),
                       lineBarsData: [
                         LineChartBarData(
-                          spots: [
-                            const FlSpot(0, 200),
-                            const FlSpot(1, 500),
-                            const FlSpot(2, 900),
-                            const FlSpot(3, 1300),
-                            const FlSpot(4, 1700),
-                            const FlSpot(5, 2100),
-                            const FlSpot(6, 2500),
+                          spots: const [
+                            FlSpot(0, 200),
+                            FlSpot(1, 500),
+                            FlSpot(2, 900),
+                            FlSpot(3, 1300),
+                            FlSpot(4, 1700),
+                            FlSpot(5, 2100),
+                            FlSpot(6, 2500),
                           ],
                           isCurved: true,
                           color: Colors.white,
@@ -153,13 +168,56 @@ class HomeContent extends StatelessWidget {
 
           // List of devices
           Expanded(
-            child: ListView(
-              children: [
-                _buildDeviceTile("Fan", "Kitchen - Bedroom", "1000 w/h", "+11.2%", Icons.ac_unit, context),
-                _buildDeviceTile("Red Light", "Kitchen - Living Room", "1000 w/h", "-10.2%", Icons.lightbulb, context),
-                _buildDeviceTile("Green Light", "Bedroom", "1090 w/h", "-10.3%", Icons.lightbulb, context),
-                _buildDeviceTile("Socket", "Living Room", "1000 w/h", "-9.2%", Icons.electrical_services, context),
-              ],
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('users').doc(user.uid).collection('devices').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('No devices found.'));
+                }
+
+                final deviceDocs = snapshot.data!.docs;
+                return ListView.builder(
+                  itemCount: deviceDocs.length,
+                  itemBuilder: (context, index) {
+                    final deviceData = deviceDocs[index].data() as Map<String, dynamic>;
+                    final deviceId = deviceDocs[index].id;
+                    final String title = deviceData['name'] ?? 'Unknown Device';
+                    final bool status = deviceData['status'] ?? false;
+                    IconData icon;
+                    switch (deviceId) {
+                      case 'fan_01':
+                        icon = Icons.ac_unit;
+                        break;
+                      case 'light_01': // This is Green Light
+                        icon = Icons.lightbulb;
+                        break;
+                      case 'light_02': // This is Red Light
+                        icon = Icons.lightbulb;
+                        break;
+                      case 'socket_01':
+                        icon = Icons.electrical_services;
+                        break;
+                      default:
+                        icon = Icons.devices_other;
+                    }
+                    return _buildDeviceTile(
+                      title,
+                      "Location placeholder",
+                      "Usage placeholder",
+                      status,
+                      icon,
+                      context,
+                      deviceId,
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -168,45 +226,40 @@ class HomeContent extends StatelessWidget {
   }
 
   // Device List Item Widget
-  Widget _buildDeviceTile(String title, String location, String usage, String percentage, IconData icon, BuildContext context) {
+  Widget _buildDeviceTile(String title, String location, String usage, bool status, IconData icon, BuildContext context, String deviceId) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF1E425E)),
+        leading: Icon(icon, color: status ? Colors.amber : const Color(0xFF1E425E)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(location),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(usage, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-            Text(percentage, style: TextStyle(color: percentage.contains("+") ? Colors.green : Colors.red)),
-          ],
+        trailing: Switch(
+          value: status,
+          onChanged: (bool newValue) async {
+            // Update device status in Firebase
+            User? user = _auth.currentUser;
+            if (user != null) {
+              await _firestore.collection('users').doc(user.uid).collection('devices').doc(deviceId).update({'status': newValue});
+            }
+          },
+          activeColor: Colors.amber,
         ),
         onTap: () {
-          if (title == "Fan") {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Fan_DeviceDetailScreen()),
-            );
-          }
-          if (title == "Red Light") {
-          Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => light1_DeviceDetailScreen()),
-          );
-          }
-          if (title == "Green Light") {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => light2_DeviceDetailScreen()),
-            );
-          }
-          if (title == "Socket") {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => socket_DeviceDetailScreen()),
-            );
+          // Navigate to respective device detail screen
+          switch (deviceId) {
+            case 'fan_01':
+              Navigator.push(context, MaterialPageRoute(builder: (context) => Fan_DeviceDetailScreen()));
+              break;
+            case 'light_01': // Green Light, navigate to Light2 screen
+              Navigator.push(context, MaterialPageRoute(builder: (context) => light1_DeviceDetailScreen()));
+              break;
+            case 'light_02': // Red Light, navigate to Light1 screen
+              Navigator.push(context, MaterialPageRoute(builder: (context) => light2_DeviceDetailScreen()));
+              break;
+            case 'socket_01':
+              Navigator.push(context, MaterialPageRoute(builder: (context) => socket_DeviceDetailScreen()));
+              break;
           }
         },
       ),

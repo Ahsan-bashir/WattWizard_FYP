@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 import 'signup_screen.dart';
 import 'home_screen.dart';
 import 'forgot_password.dart';
@@ -15,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance; // Initialize Firestore
   bool _isLoading = false;
 
   Future<void> _login(BuildContext context) async {
@@ -23,22 +25,76 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _auth.signInWithEmailAndPassword(
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // Navigate to home screen if login is successful
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      User? user = userCredential.user;
+
+      if (user != null) {
+        DocumentReference userDocRef = _firestore.collection('users').doc(user.uid);
+
+        // Always attempt to set/merge basic user profile and settings
+        // This handles both new users (document won't exist, will be created)
+        // and existing users (document will be merged)
+        await userDocRef.set({
+          'profile': {
+            'email': user.email,
+            'displayName': user.displayName ?? user.email?.split('@')[0],
+          },
+          'settings': {
+            'unitLimit': 200, // Default unit limit
+          },
+        }, SetOptions(merge: true)); // Use merge to avoid overwriting existing fields
+
+        debugPrint('User document (profile/settings) ensured for ${user.uid}');
+
+        // Now, check and populate the devices subcollection
+        CollectionReference devicesCollectionRef = userDocRef.collection('devices');
+        QuerySnapshot devicesSnapshot = await devicesCollectionRef.get();
+
+        if (devicesSnapshot.docs.isEmpty) {
+          debugPrint('Devices collection is empty for ${user.uid}. Populating...');
+          await devicesCollectionRef.doc('fan_01').set({
+            'name': 'Fan',
+            'status': false,
+            'power_baseline_watts': 10,
+          });
+          await devicesCollectionRef.doc('light_01').set({
+            'name': 'Green Light',
+            'status': false,
+            'power_baseline_watts': 0.3,
+          });
+          await devicesCollectionRef.doc('light_02').set({
+            'name': 'Red Light',
+            'status': false,
+            'power_baseline_watts': 0.3,
+          });
+          await devicesCollectionRef.doc('socket_01').set({
+            'name': 'Socket',
+            'status': false,
+            'power_baseline_watts': 100, // Example baseline
+          });
+          debugPrint('Default devices populated for ${user.uid}');
+        } else {
+          debugPrint('Devices collection already exists and is not empty for ${user.uid}');
+        }
+
+        // Navigate to home screen if login is successful
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       String errorMessage = "Login failed. Please try again.";
       if (e.code == 'user-not-found') {
         errorMessage = "No user found for this email.";
       } else if (e.code == 'wrong-password') {
         errorMessage = "Incorrect password. Please try again.";
+      } else if (e.code == 'invalid-email') {
+        errorMessage = "The email address is not valid.";
       }
 
       // Show error message

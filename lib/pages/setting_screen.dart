@@ -112,8 +112,8 @@ class _SettingScreenState extends State<SettingScreen> {
                         final updatedLimit = int.tryParse(unitLimitController.text);
                         if (updatedLimit != null) {
                           await FirebaseFirestore.instance
-                              .collection('wattwizard')
-                              .doc('FRHZLgxL68UL66HdprgD')
+                              .collection('watt-wizard')
+                              .doc('HicevjsZy57Qx2Dzowzh')
                               .update({'units_limit': updatedLimit});
 
                           ScaffoldMessenger.of(context).showSnackBar(

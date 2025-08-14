@@ -1,0 +1,2 @@
+D:/WattWizard1/android/app/.cxx/Debug/4z6i5r4q/x86_64/CMakeFiles/edit_cache.dir
+D:/WattWizard1/android/app/.cxx/Debug/4z6i5r4q/x86_64/CMakeFiles/rebuild_cache.dir

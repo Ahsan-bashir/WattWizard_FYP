@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class light1_DeviceDetailScreen extends StatefulWidget {
   @override
@@ -9,26 +10,58 @@ class light1_DeviceDetailScreen extends StatefulWidget {
 
 class _light1_DeviceDetailScreenState extends State<light1_DeviceDetailScreen> {
   bool isOn = false;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  User? _currentUser;
+  DocumentReference? _greenLightDocRef;
 
-  // Reference to your Firestore document
-  final fanDocRef = FirebaseFirestore.instance
-      .collection('wattwizard')
-      .doc('FRHZLgxL68UL66HdprgD');
+  @override
+  void initState() {
+    super.initState();
+    _currentUser = _auth.currentUser;
+    if (_currentUser != null) {
+      // This screen now controls the Green Light (light_02)
+      _greenLightDocRef = _firestore.collection('users').doc(_currentUser!.uid).collection('devices').doc('light_02');
+      _listenToGreenLightStatus();
+    }
+  }
 
-  // Method to update fan status in Firestore
-  Future<void> updateFanStatus(bool status) async {
+  void _listenToGreenLightStatus() {
+    _greenLightDocRef?.snapshots().listen((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        final data = snapshot.data() as Map<String, dynamic>?;
+        if (data != null) {
+          setState(() {
+            isOn = data['status'] ?? false;
+          });
+        }
+      }
+    });
+  }
+
+  // Method to update Green Light status in Firestore
+  Future<void> updateGreenLightStatus(bool status) async {
     try {
-      await fanDocRef.update({'light1_status': status});
+      if (_greenLightDocRef != null) {
+        await _greenLightDocRef!.update({'status': status});
+      }
     } catch (e) {
-      debugPrint('Failed to update fan status: $e');
+      debugPrint('Failed to update Green Light status: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_currentUser == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text("Green Light")),
+        body: const Center(child: Text("Please log in to control devices.")),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("Red Light"),
+        title: Text("Green Light"), // Updated title
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -55,12 +88,12 @@ class _light1_DeviceDetailScreenState extends State<light1_DeviceDetailScreen> {
                         setState(() {
                           isOn = val;
                         });
-                        await updateFanStatus(val); // 🔄 Update Firestore here
+                        await updateGreenLightStatus(val); // Updated method call
                       },
                     ),
                   ],
                 ),
-                Icon(Icons.lightbulb, size: 40, color: isOn ? Colors.red : Colors.grey),
+                Icon(Icons.lightbulb, size: 40, color: isOn ? Colors.green : Colors.grey), // Updated icon color
               ],
             ),
           ],
