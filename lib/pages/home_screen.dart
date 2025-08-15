@@ -8,6 +8,7 @@ import 'Fan_device_detail_screen.dart';
 import 'light1_device_detail_screen.dart';
 import 'light2_device_detail_screen.dart';
 import 'socket_device_detail_screen.dart';
+import 'power_monitoring_screen.dart'; // Import the new screen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,11 +21,18 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0; // Tracks which tab is selected
 
   // List of screens to navigate between
-  final List<Widget> _screens = [
-    HomeContent(), // Home Screen Content
-    AISuggestionScreen(), // AI Suggestion Screen
-    SettingScreen(),
-  ];
+  late final List<Widget> _screens; // Changed to late final
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      HomeContent(), // Home Screen Content
+      AISuggestionScreen(), // AI Suggestion Screen
+      PowerMonitoringScreen(), // New Power Monitoring Screen
+      SettingScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.analytics), label: "AI Suggestion"),
+          BottomNavigationBarItem(icon: Icon(Icons.power), label: "Power"), // New Power tab
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"),
         ],
       ),
@@ -194,10 +203,10 @@ class _HomeContentState extends State<HomeContent> {
                       case 'fan_01':
                         icon = Icons.ac_unit;
                         break;
-                      case 'light_01': // This is Green Light
+                      case 'light_01': // This is Red Light
                         icon = Icons.lightbulb;
                         break;
-                      case 'light_02': // This is Red Light
+                      case 'light_02': // This is Green Light
                         icon = Icons.lightbulb;
                         break;
                       case 'socket_01':
@@ -251,11 +260,11 @@ class _HomeContentState extends State<HomeContent> {
             case 'fan_01':
               Navigator.push(context, MaterialPageRoute(builder: (context) => Fan_DeviceDetailScreen()));
               break;
-            case 'light_01': // Green Light, navigate to Light2 screen
-              Navigator.push(context, MaterialPageRoute(builder: (context) => light1_DeviceDetailScreen()));
-              break;
-            case 'light_02': // Red Light, navigate to Light1 screen
+            case 'light_01': // Red Light, navigate to Light2 screen
               Navigator.push(context, MaterialPageRoute(builder: (context) => light2_DeviceDetailScreen()));
+              break;
+            case 'light_02': // Green Light, navigate to Light1 screen
+              Navigator.push(context, MaterialPageRoute(builder: (context) => light1_DeviceDetailScreen()));
               break;
             case 'socket_01':
               Navigator.push(context, MaterialPageRoute(builder: (context) => socket_DeviceDetailScreen()));
