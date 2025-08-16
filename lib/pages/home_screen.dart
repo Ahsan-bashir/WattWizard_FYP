@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'ai_suggestion_screen.dart';
+import 'ai_dashboard_screen.dart';
 import 'setting_screen.dart';
 import 'Fan_device_detail_screen.dart';
 import 'light1_device_detail_screen.dart';
@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _screens = [
       HomeContent(), // Home Screen Content
-      AISuggestionScreen(), // AI Suggestion Screen
+      AIDashboardScreen(userId:'SwoC0PrmsjduTm2uoigHod8TuY92'), // AI Suggestion Screen
       PowerMonitoringScreen(), // New Power Monitoring Screen
       SettingScreen(),
     ];
