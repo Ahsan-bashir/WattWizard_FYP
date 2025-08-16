@@ -37,7 +37,7 @@ class PowerConsumptionModel {
   }
 
   static double calculateDailyCost(double kWhConsumed, double kWhLimit) {
-    double baseCostPerKWh = 0.15; // Base cost per kWh
+    double baseCostPerKWh = 43.0; // Base cost per kWh in PKR (Pakistani Rupees)
     double totalCost = 0;
 
     if (kWhConsumed <= kWhLimit) {

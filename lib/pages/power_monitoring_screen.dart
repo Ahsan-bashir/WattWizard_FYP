@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import '../models/ai_models.dart';
+
 class PowerMonitoringScreen extends StatefulWidget {
   const PowerMonitoringScreen({super.key});
 
@@ -115,25 +117,27 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
             size: 32,
           ),
           SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "12V DC Power Monitoring",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "12V DC Power Monitoring",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              Text(
-                "Low-power device tracking & analytics",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
+                Text(
+                  "Low-power device tracking & analytics",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -201,12 +205,14 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    "12V DC System Status",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3A8A),
+                  const Expanded(
+                    child: Text(
+                      "12V DC System Status",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
+                      ),
                     ),
                   ),
                   Container(
@@ -216,6 +222,7 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
                           width: 8,
@@ -415,12 +422,15 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -492,7 +502,7 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.1,
+                  childAspectRatio: 1.0,
                 ),
                 itemCount: devices.length,
                 itemBuilder: (context, index) {
@@ -504,7 +514,7 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
                   final estimatedPower = (data['estimated_power'] ?? 0.0).toDouble();
                   final operatingVoltage = (data['operating_voltage'] ?? 12.0).toDouble();
                   final totalOnTimeHours = (data['total_on_time_hours'] ?? 0.0).toDouble();
-                  final currentSessionHours = (data['current_session_duration_hours'] ?? 0.0).toDouble();
+                  final currentSessionHours = (data['current_session_hours'] ?? 0.0).toDouble();
 
                   IconData deviceIcon;
                   Color deviceColor;
@@ -518,13 +528,13 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
                       break;
                     case 'light_01':
                       deviceIcon = Icons.lightbulb;
-                      deviceColor = Colors.red;
-                      deviceType = "Red LED";
+                      deviceColor = Colors.green;
+                      deviceType = "Green LED";
                       break;
                     case 'light_02':
                       deviceIcon = Icons.lightbulb;
-                      deviceColor = Colors.green;
-                      deviceType = "Green LED";
+                      deviceColor = Colors.red;
+                      deviceType = "Red LED";
                       break;
                     case 'socket_01':
                       deviceIcon = Icons.power_settings_new;
@@ -569,7 +579,7 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
       Color color,
       ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isOn ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
@@ -607,12 +617,16 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: isOn ? color : Colors.grey.shade600,
+          Flexible(
+            child: Text(
+              name,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isOn ? color : Colors.grey.shade600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
@@ -621,35 +635,86 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
               fontSize: 11,
               color: Colors.grey.shade500,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
-          Text(
-            "${estimatedPower.toStringAsFixed(1)}W @ ${operatingVoltage.toStringAsFixed(0)}V",
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              "${estimatedPower.toStringAsFixed(1)}W @ ${operatingVoltage.toStringAsFixed(0)}V",
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade600,
+              ),
             ),
           ),
           const Spacer(),
-          if (isOn && currentSessionHours > 0)
-            Text(
-              "Session: ${_formatHours(currentSessionHours)}",
-              style: TextStyle(
-                fontSize: 10,
-                color: color,
-                fontWeight: FontWeight.w500,
+
+          // Session tracking for active devices
+          if (isOn && currentSessionHours > 0) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                "Session: ${_formatSessionTime(currentSessionHours)}",
+                style: TextStyle(
+                  fontSize: 9,
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          Text(
-            "Total: ${_formatHours(totalOnTimeHours)}",
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade600,
+            const SizedBox(height: 2),
+          ] else if (isOn) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                "Session: Starting...",
+                style: TextStyle(
+                  fontSize: 9,
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 2),
+          ],
+
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              "Total: ${_formatHours(totalOnTimeHours)}",
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey.shade600,
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatSessionTime(double hours) {
+    if (hours < 1/60) {
+      return "${(hours * 3600).toStringAsFixed(0)}s";
+    } else if (hours < 1) {
+      return "${(hours * 60).toStringAsFixed(0)}m";
+    } else {
+      return "${hours.toStringAsFixed(1)}h";
+    }
   }
 
   String _formatHours(double hours) {
@@ -708,12 +773,14 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
                       size: 24,
                     ),
                     SizedBox(width: 8),
-                    Text(
-                      "Power Trends",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E3A8A),
+                    Expanded(
+                      child: Text(
+                        "Power Trends",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E3A8A),
+                        ),
                       ),
                     ),
                   ],
@@ -765,12 +832,14 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
                     size: 24,
                   ),
                   SizedBox(width: 8),
-                  Text(
-                    "DC System Trends (Last 20 readings)",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3A8A),
+                  Expanded(
+                    child: Text(
+                      "DC System Trends (Last 20 readings)",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
+                      ),
                     ),
                   ),
                 ],
@@ -907,8 +976,12 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
             totalEstimatedPower += estimatedPower;
           }
 
-          // Calculate daily energy consumption (assuming current usage pattern)
-          totalDailyEnergy += (estimatedPower * totalOnTimeHours); // Wh
+          // Calculate daily energy consumption (assuming 24-hour usage pattern for active devices)
+          if (isOn) {
+            totalDailyEnergy += (estimatedPower * 24); // Wh per day if device runs 24 hours
+          } else {
+            totalDailyEnergy += (estimatedPower * totalOnTimeHours / 30); // Average daily usage based on historical data
+          }
 
           // Find most used device
           if (totalOnTimeHours > maxUsageHours) {
@@ -917,9 +990,16 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
           }
         }
 
-        // Estimate daily cost for low-power system (assuming $0.12 per kWh)
-        final dailyCostCents = (totalDailyEnergy / 1000) * 0.12 * 100; // Convert to cents
-        final monthlyCostDollars = dailyCostCents * 30 / 100; // Convert to dollars
+        // Convert to kWh for cost calculation
+        final dailyKWhConsumed = totalDailyEnergy / 1000;
+
+        // Use PowerConsumptionModel for cost calculation
+        // Assuming a daily limit of 0.5 kWh for low-power DC system
+        final dailyCostPKR = PowerConsumptionModel.calculateDailyCost(dailyKWhConsumed, 0.5);
+        final monthlyCostPKR = dailyCostPKR * 30;
+
+        // Check if currently in peak hour
+        final isPeakTime = PowerConsumptionModel.isPeakHour();
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -937,22 +1017,49 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.insights,
                     color: Color(0xFF1E3A8A),
                     size: 24,
                   ),
-                  SizedBox(width: 8),
-                  Text(
-                    "DC System Insights",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3A8A),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      "DC System Insights",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
+                      ),
                     ),
                   ),
+                  // Peak hour indicator
+                  if (isPeakTime)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.schedule, color: Colors.orange, size: 12),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Peak Hours",
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -994,11 +1101,11 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
                   Expanded(
                     child: _buildInsightCard(
                       "Est. Monthly Cost",
-                      monthlyCostDollars < 1 ?
-                      "${dailyCostCents.toStringAsFixed(1)}¢/day" :
-                      "\${monthlyCostDollars.toStringAsFixed(2)}",
+                      monthlyCostPKR < 100 ?
+                      "₨${dailyCostPKR.toStringAsFixed(0)}/day" :
+                      "₨${monthlyCostPKR.toStringAsFixed(0)}",
                       Icons.attach_money,
-                      Colors.purple,
+                      isPeakTime ? Colors.orange : Colors.purple,
                     ),
                   ),
                 ],
@@ -1024,6 +1131,45 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
                             color: Colors.grey.shade700,
                             fontWeight: FontWeight.w500,
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              // Additional cost breakdown info
+              if (dailyKWhConsumed > 0) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 14, color: Colors.blue.shade600),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Cost Details",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "Rate: ₨43/kWh • Daily: ${(dailyKWhConsumed * 1000).toStringAsFixed(0)}Wh" +
+                            (isPeakTime ? " • Peak hours (+50%)" : ""),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -1059,12 +1205,15 @@ class _PowerMonitoringScreenState extends State<PowerMonitoringScreen>
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
         ],

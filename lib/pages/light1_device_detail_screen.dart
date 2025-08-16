@@ -21,7 +21,7 @@ class _light1_DeviceDetailScreenState extends State<light1_DeviceDetailScreen> {
     _currentUser = _auth.currentUser;
     if (_currentUser != null) {
       // This screen now controls the Green Light (light_02)
-      _greenLightDocRef = _firestore.collection('users').doc(_currentUser!.uid).collection('devices').doc('light_02');
+      _greenLightDocRef = _firestore.collection('users').doc(_currentUser!.uid).collection('devices').doc('light_01');
       _listenToGreenLightStatus();
     }
   }
