@@ -14,27 +14,26 @@ class _SettingScreenState extends State<SettingScreen> {
   String userName = "";
   String userEmail = "";
   String phoneNumber = "";
+  String selectedAvatar = "assets/avatars/avatar1.png"; // Default avatar
 
-  // User preferences
-  bool notificationsEnabled = true;
-  bool autoDataSync = true;
-  bool darkModeEnabled = false;
-  String powerUnit = "watts"; // watts, kilowatts
-  String energyUnit = "kWh"; // kWh, Wh
-  int dataRetentionDays = 30;
-  double powerThreshold = 50.0; // Alert threshold in watts
+  // Available built-in avatars
+  final List<String> avatarOptions = [
+    "assets/avatars/avatar1.png",
+    "assets/avatars/avatar2.png",
+    "assets/avatars/avatar3.png",
+    "assets/avatars/avatar4.png",
+    "assets/avatars/avatar5.png",
+  ];
 
   // Controllers
+  late TextEditingController nameController;
   late TextEditingController phoneController;
-  late TextEditingController powerThresholdController;
-  late TextEditingController dataRetentionController;
 
   @override
   void initState() {
     super.initState();
+    nameController = TextEditingController();
     phoneController = TextEditingController();
-    powerThresholdController = TextEditingController();
-    dataRetentionController = TextEditingController();
     fetchUserData();
   }
 
@@ -53,18 +52,20 @@ class _SettingScreenState extends State<SettingScreen> {
 
         if (userDoc.exists) {
           final data = userDoc.data();
-          phoneNumber = data?['phone'] ?? "";
-          notificationsEnabled = data?['notifications_enabled'] ?? true;
-          autoDataSync = data?['auto_data_sync'] ?? true;
-          darkModeEnabled = data?['dark_mode'] ?? false;
-          powerUnit = data?['power_unit'] ?? "watts";
-          energyUnit = data?['energy_unit'] ?? "kWh";
-          dataRetentionDays = data?['data_retention_days'] ?? 30;
-          powerThreshold = (data?['power_threshold'] ?? 50.0).toDouble();
 
+          // Get profile data
+          final profileData = data?['profile'] as Map<String, dynamic>?;
+          if (profileData != null) {
+            userName = profileData['name'] ?? userName;
+            phoneNumber = profileData['phone'] ?? "";
+            selectedAvatar = profileData['avatar'] ?? "assets/avatars/avatar1.png";
+          } else {
+            // Fallback to root level phone if profile doesn't exist
+            phoneNumber = data?['phone'] ?? "";
+          }
+
+          nameController.text = userName;
           phoneController.text = phoneNumber;
-          powerThresholdController.text = powerThreshold.toString();
-          dataRetentionController.text = dataRetentionDays.toString();
         }
         setState(() {});
       }
@@ -77,79 +78,30 @@ class _SettingScreenState extends State<SettingScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final updatedThreshold = double.tryParse(powerThresholdController.text) ?? powerThreshold;
-        final updatedRetention = int.tryParse(dataRetentionController.text) ?? dataRetentionDays;
-
+        // Update the user profile in Firestore
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .set({
-          'phone': phoneController.text,
-          'notifications_enabled': notificationsEnabled,
-          'auto_data_sync': autoDataSync,
-          'dark_mode': darkModeEnabled,
-          'power_unit': powerUnit,
-          'energy_unit': energyUnit,
-          'data_retention_days': updatedRetention,
-          'power_threshold': updatedThreshold,
+          'profile': {
+            'name': nameController.text.trim(),
+            'phone': phoneController.text.trim(),
+            'avatar': selectedAvatar,
+            'email': userEmail,
+          },
           'last_updated': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
 
+        // Also update Firebase Auth display name
+        await user.updateDisplayName(nameController.text.trim());
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Settings saved successfully")),
+          const SnackBar(content: Text("Profile updated successfully")),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to save settings: $e")),
-      );
-    }
-  }
-
-  Future<void> clearDeviceHistory() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // Show confirmation dialog
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Clear Device History"),
-            content: const Text("This will permanently delete all device history data. Are you sure?"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text("Clear", style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        );
-
-        if (confirmed == true) {
-          // Clear device history collection
-          final batch = FirebaseFirestore.instance.batch();
-          final historyQuery = await FirebaseFirestore.instance
-              .collection('device_history')
-              .get();
-
-          for (var doc in historyQuery.docs) {
-            batch.delete(doc.reference);
-          }
-
-          await batch.commit();
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Device history cleared successfully")),
-          );
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to clear history: $e")),
+        SnackBar(content: Text("Failed to update profile: $e")),
       );
     }
   }
@@ -214,11 +166,99 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
+  void _showAvatarSelector() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Choose Avatar"),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 200,
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: avatarOptions.length,
+            itemBuilder: (context, index) {
+              final avatar = avatarOptions[index];
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedAvatar = avatar;
+                  });
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selectedAvatar == avatar
+                          ? const Color(0xFF1E425E)
+                          : Colors.grey.shade300,
+                      width: selectedAvatar == avatar ? 3 : 1,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.grey.shade200,
+                    child: _getAvatarIcon(index),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _getAvatarIcon(int index) {
+    final icons = [
+      Icons.person,
+      Icons.account_circle,
+      Icons.face,
+      Icons.person_outline,
+      Icons.supervised_user_circle,
+    ];
+
+    final colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal,
+    ];
+
+    return Icon(
+      icons[index % icons.length],
+      size: 40,
+      color: colors[index % colors.length],
+    );
+  }
+
+  Widget _getCurrentAvatar() {
+    int avatarIndex = avatarOptions.indexOf(selectedAvatar);
+    if (avatarIndex == -1) avatarIndex = 0;
+
+    return CircleAvatar(
+      radius: 50,
+      backgroundColor: Colors.grey.shade200,
+      child: _getAvatarIcon(avatarIndex),
+    );
+  }
+
   @override
   void dispose() {
+    nameController.dispose();
     phoneController.dispose();
-    powerThresholdController.dispose();
-    dataRetentionController.dispose();
     super.dispose();
   }
 
@@ -253,14 +293,36 @@ class _SettingScreenState extends State<SettingScreen> {
                 Center(
                   child: Column(
                     children: [
-                      const CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.grey,
-                        child: Icon(Icons.person, size: 50, color: Colors.white),
+                      GestureDetector(
+                        onTap: _showAvatarSelector,
+                        child: Stack(
+                          children: [
+                            _getCurrentAvatar(),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF1E425E),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 10),
-                      Text(userName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const Text("Edit Profile", style: TextStyle(color: Colors.grey)),
+                      Text(
+                        nameController.text.isEmpty ? userName : nameController.text,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const Text("Tap avatar to change", style: TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -268,51 +330,17 @@ class _SettingScreenState extends State<SettingScreen> {
 
                 // Profile Information
                 _sectionHeader("Profile Information"),
-                _buildTextField("Full Name", userName),
+                _buildEditableField("Full Name", nameController, TextInputType.text),
                 _buildTextField("E-mail", userEmail, isEditable: false),
                 _buildEditableField("Phone Number", phoneController, TextInputType.phone),
 
-                const SizedBox(height: 20),
-
-                // Notification Settings
-                _sectionHeader("Notifications"),
-                _buildSwitchTile("Enable Notifications", notificationsEnabled, (value) {
-                  setState(() => notificationsEnabled = value);
-                }),
-                _buildEditableField("Power Alert Threshold (Watts)", powerThresholdController, TextInputType.number),
-
-                const SizedBox(height: 20),
-
-                // Data & Sync Settings
-                _sectionHeader("Data & Sync"),
-                _buildSwitchTile("Auto Data Sync", autoDataSync, (value) {
-                  setState(() => autoDataSync = value);
-                }),
-                _buildDropdownField("Power Unit", powerUnit, ["watts", "kilowatts"], (value) {
-                  setState(() => powerUnit = value!);
-                }),
-                _buildDropdownField("Energy Unit", energyUnit, ["kWh", "Wh"], (value) {
-                  setState(() => energyUnit = value!);
-                }),
-                _buildEditableField("Data Retention (Days)", dataRetentionController, TextInputType.number),
-
-                const SizedBox(height: 20),
-
-                // Appearance
-                _sectionHeader("Appearance"),
-                _buildSwitchTile("Dark Mode", darkModeEnabled, (value) {
-                  setState(() => darkModeEnabled = value);
-                }),
-
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
 
                 // Device Management
                 _sectionHeader("Device Management"),
                 _buildActionButton("Reset All Devices", Icons.power_off, Colors.orange, resetAllDevices),
-                const SizedBox(height: 10),
-                _buildActionButton("Clear Device History", Icons.delete_outline, Colors.red, clearDeviceHistory),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 40),
 
                 // Save Button
                 SizedBox(
@@ -364,7 +392,7 @@ class _SettingScreenState extends State<SettingScreen> {
           labelStyle: const TextStyle(color: Colors.black),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: isEditable ? Colors.white : Colors.grey.shade100,
         ),
         controller: TextEditingController(text: value),
       ),
@@ -384,44 +412,6 @@ class _SettingScreenState extends State<SettingScreen> {
           filled: true,
           fillColor: Colors.white,
         ),
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile(String title, bool value, Function(bool) onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 16)),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: const Color(0xFF1E425E),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdownField(String label, String value, List<String> options, Function(String?) onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.black),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          filled: true,
-          fillColor: Colors.white,
-        ),
-        items: options.map((option) => DropdownMenuItem(
-          value: option,
-          child: Text(option),
-        )).toList(),
-        onChanged: onChanged,
       ),
     );
   }
